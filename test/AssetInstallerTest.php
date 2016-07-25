@@ -12,10 +12,20 @@ use ZF\AssetManager\AssetInstaller;
 
 class AssetInstallerTest extends TestCase
 {
+    protected $expectedAssets = [
+        'zf-apigility/css/styles.css',
+        'zf-apigility/img/favicon.ico',
+        'zf-apigility/js/scripts.js',
+        'zf-barbaz/css/styles.css',
+        'zf-barbaz/img/favicon.ico',
+        'zf-barbaz/js/scripts.js',
+        'zf-foobar/images/favicon.ico',
+        'zf-foobar/scripts/scripts.js',
+        'zf-foobar/styles/styles.css',
+    ];
+
     public function setUp()
     {
-        // Seed the test asset directories with files; these will then be copied to the vfs directory later
-        //
         // Create vfs directory for package
         //   - Should have a config subdir
         //     - Put config from above in that dir
