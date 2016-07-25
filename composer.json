@@ -1,0 +1,43 @@
+{
+    "name": "zfcampus/zf-asset-manager",
+    "description": "Composer plugin for copying module assets into application document roots.",
+    "type": "composer-plugin",
+    "license": "BSD-3-Clause",
+    "require": {
+        "php": "^5.6 || ^7.0",
+        "composer-plugin-api": "^1.0"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        },
+        "class": "ZF\\Assetmanager\\AssetInstaller"
+    },
+    "require-dev": {
+        "composer/composer": ">=1.0.0-alpha10",
+        "phpunit/phpunit": "^4.8",
+        "squizlabs/php_codesniffer": "^2.6.2",
+        "mikey179/vfsStream": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "ZF\\AssetManager\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ZFTest\\AssetManager\\": "test/"
+        }
+    },
+    "scripts": {
+        "check": [
+            "@cs-check",
+            "@test"
+        ],
+        "upload-coverage": "coveralls -v",
+        "cs-check": "phpcs",
+        "cs-fix": "phpcbf",
+        "test": "phpunit --colors=always",
+        "test-coverage": "phpunit --colors=always --coverage-clover clover.xml"
+    }
+}
