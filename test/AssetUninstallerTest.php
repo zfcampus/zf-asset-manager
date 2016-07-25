@@ -10,22 +10,10 @@ namespace ZFTest\AssetManager;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 use PHPUnit_Framework_TestCase as TestCase;
-use ZF\AssetManager\AssetInstaller;
+use ZF\AssetManager\AssetUninstaller;
 
-class AssetInstallerTest extends TestCase
+class AssetUninstallerTest extends TestCase
 {
-    protected $expectedAssets = [
-        'zf-apigility/css/styles.css',
-        'zf-apigility/img/favicon.ico',
-        'zf-apigility/js/scripts.js',
-        'zf-barbaz/css/styles.css',
-        'zf-barbaz/img/favicon.ico',
-        'zf-barbaz/js/scripts.js',
-        'zf-foobar/images/favicon.ico',
-        'zf-foobar/scripts/scripts.js',
-        'zf-foobar/styles/styles.css',
-    ];
-
     public function setUp()
     {
         // Create vfs directory for package
@@ -52,7 +40,7 @@ class AssetInstallerTest extends TestCase
         ];
     }
 
-    public function testInstallerAbortsIfNoPublicSubdirIsPresentInProjectRoot()
+    public function testUninstallerAbortsIfNoPublicSubdirIsPresentInProjectRoot()
     {
         $this->markTestIncomplete();
         // Create vfs directory for project, with no subdirs.
@@ -60,7 +48,7 @@ class AssetInstallerTest extends TestCase
         // Seed a Composer package.
     }
 
-    public function testInstallerAbortsIfPackageDoesNotHaveConfiguration()
+    public function testUninstallerAbortsIfPackageDoesNotHaveConfiguration()
     {
         $this->markTestIncomplete();
         // Create vfs directory for project, with public subdir
@@ -70,7 +58,7 @@ class AssetInstallerTest extends TestCase
         // Seed a Composer package.
     }
 
-    public function testInstallerAbortsIfConfigurationDoesNotContainAssetInformation()
+    public function testUninstallerAbortsIfConfigurationDoesNotContainAssetInformation()
     {
         $this->markTestIncomplete();
         // Create vfs directory for project, with public subdir
@@ -80,26 +68,40 @@ class AssetInstallerTest extends TestCase
         // Seed a Composer package.
     }
 
-    public function testInstallerCopiesAssetsToDocumentRootBasedOnConfiguration()
+    public function testUninstallerAbortsIfConfiguredAssetsAreNotPresentInDocroot()
     {
         $this->markTestIncomplete();
-        // Create vfs directory for project, with public subdir.
+        // Create vfs directory for project, with public subdir, but no copied assets.
+        //
+        // Create vfs directory for package, with config/module.config.php returning getValidConfig.
+        //
+        // Seed a Composer package.
+    }
+
+    public function testUninstallerRemovesAssetsFromDocumentRootBasedOnConfiguration()
+    {
+        $this->markTestIncomplete();
+        // Create vfs directory for project, with public subdir, and copied assets.
+        //   - Asset directories MUST have .gitignore files present
         //
         // Create vfs directory for package, with config/module.config.php returning getValidConfig().
         //
         // Seed a Composer package.
         //
         // - Should loop through each path and:
-        //   - recursively copy ONLY directories found under that path to the doc root in the project
+        //   - recursively remove any subdirectories found from the document root, if matched.
     }
 
-    /**
-     * @depends testInstallerCopiesAssetsToDocumentRootBasedOnConfiguration
-     */
-    public function testInstallerWritesGitIgnoreFilesToEachAssetDirectoryItCopies()
+    public function testUninstallerDoesNotRemoveAssetsFromDcoumentRootIfGitignoreFilesAreMissing()
     {
         $this->markTestIncomplete();
-        // Check that each major directory created has a .gitignore file, and
-        // that the contents exclude the directory itself from checkin.
+        // Create vfs directory for project, with public subdir, and copied assets.
+        //   - Asset directories MUST NOT have .gitignore files present
+        //
+        // Create vfs directory for package, with config/module.config.php returning getValidConfig().
+        //
+        // Seed a Composer package.
+        //
+        // - Should loop through each path and DO NOTHING; asset dirs should remain.
     }
 }
