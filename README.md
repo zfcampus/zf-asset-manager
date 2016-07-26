@@ -114,8 +114,3 @@ follows:
 
 Removing the entry from `public/.gitignore` is enough to prevent the uninstaller
 from removing the assets when you remove a module.
-
-## TODO
-
-- [X] Integration testing.
-- [ ] Complete the unit tests.
