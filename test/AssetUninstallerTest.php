@@ -293,7 +293,10 @@ class AssetUninstallerTest extends TestCase
                 case preg_match('#/zf-foobar/#', $asset):
                     // fall-through
                 default:
-                    $this->assertFileNotExists($path, sprintf('File "%s" exists when it should have been removed', $path));
+                    $this->assertFileNotExists(
+                        $path,
+                        sprintf('File "%s" exists when it should have been removed', $path)
+                    );
                     break;
             }
         }
