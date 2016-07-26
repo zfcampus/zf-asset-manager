@@ -7,6 +7,12 @@
 
 namespace ZFTest\AssetManager;
 
+use Composer\Composer;
+use Composer\DependencyResolver\Operation\InstallOperation;
+use Composer\Installer\InstallationManager;
+use Composer\Installer\PackageEvent;
+use Composer\IO\IOInterface;
+use Composer\Package\PackageInterface;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 use PHPUnit_Framework_TestCase as TestCase;
@@ -28,14 +34,42 @@ class AssetInstallerTest extends TestCase
 
     public function setUp()
     {
-        // Create vfs directory for package
-        //   - Should have a config subdir
-        //     - Put config from above in that dir
-        //
-        // Create vfs directory for project
-        //   - Should have a public subdir
-        //
-        // Seed a Composer package.
+        // Create virtual filesystem
+        $this->filesystem = vfsStream::setup('project');
+    }
+
+    public function createInstaller()
+    {
+        $this->package = $this->prophesize(PackageInterface::class);
+
+        $installationManager = $this->prophesize(InstallationManager::class);
+        $installationManager
+            ->getInstallPath($this->package->reveal())
+            ->willReturn(vfsStream::url('project/vendor/org/package'))
+            ->shouldBeCalled();
+
+        $composer = $this->prophesize(Composer::class);
+        $composer
+            ->getInstallationManager()
+            ->will([$installationManager, 'reveal'])
+            ->shouldBeCalled();
+
+        $operation = $this->prophesize(InstallOperation::class);
+        $operation
+            ->getPackage()
+            ->will([$this->package, 'reveal'])
+            ->shouldBeCalled();
+
+        $this->event = $this->prophesize(PackageEvent::class);
+        $this->event
+            ->getOperation()
+            ->will([$operation, 'reveal'])
+            ->shouldBeCalled();
+
+        return new AssetInstaller(
+            $composer->reveal(),
+            $this->prophesize(IOInterface::class)->reveal()
+        );
     }
 
     public function getValidConfig()
@@ -54,52 +88,92 @@ class AssetInstallerTest extends TestCase
 
     public function testInstallerAbortsIfNoPublicSubdirIsPresentInProjectRoot()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with no subdirs.
-        //
-        // Seed a Composer package.
+        $composer = $this->prophesize(Composer::class);
+        $composer->getInstallationManager()->shouldNotBeCalled();
+
+        $installer = new AssetInstaller(
+            $composer->reveal(),
+            $this->prophesize(IOInterface::class)->reveal()
+        );
+        $installer->setProjectPath(vfsStream::url('project'));
+
+        $event = $this->prophesize(PackageEvent::class);
+        $event->getOperation()->shouldNotBeCalled();
+
+        $this->assertNull($installer($event->reveal()));
     }
 
     public function testInstallerAbortsIfPackageDoesNotHaveConfiguration()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with public subdir
-        //
-        // Create vfs directory for package, with no subdirs
-        //
-        // Seed a Composer package.
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        $installer = $this->createInstaller();
+        $installer->setProjectPath(vfsStream::url('project'));
+
+        $this->assertNull($installer($this->event->reveal()));
+
+        foreach ($this->expectedAssets as $asset) {
+            $path = vfsStream::url('project/public/' . $asset);
+            $this->assertFileNotExists($path, sprintf('File %s discovered, when it should not exist', $path));
+        }
     }
 
     public function testInstallerAbortsIfConfigurationDoesNotContainAssetInformation()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with public subdir
-        //
-        // Create vfs directory for package, with config/module.config.php returning empty array.
-        //
-        // Seed a Composer package.
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent('<' . "?php\nreturn [];");
+
+        $installer = $this->createInstaller();
+        $installer->setProjectPath(vfsStream::url('project'));
+
+        $this->assertNull($installer($this->event->reveal()));
+
+        foreach ($this->expectedAssets as $asset) {
+            $path = vfsStream::url('project/public/' . $asset);
+            $this->assertFileNotExists($path, sprintf('File %s discovered, when it should not exist', $path));
+        }
     }
 
     public function testInstallerCopiesAssetsToDocumentRootBasedOnConfiguration()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with public subdir.
-        //
-        // Create vfs directory for package, with config/module.config.php returning getValidConfig().
-        //
-        // Seed a Composer package.
-        //
-        // - Should loop through each path and:
-        //   - recursively copy ONLY directories found under that path to the doc root in the project
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent(sprintf('<' . "?php\nreturn %s;", var_export($this->getValidConfig(), true)));
+
+        $installer = $this->createInstaller();
+        $installer->setProjectPath(vfsStream::url('project'));
+
+        $this->assertNull($installer($this->event->reveal()));
+
+        foreach ($this->expectedAssets as $asset) {
+            $path = vfsStream::url('project/public/' . $asset);
+            $this->assertFileExists($path, sprintf('File %s not present, when it should exist', $path));
+        }
     }
 
-    /**
-     * @depends testInstallerCopiesAssetsToDocumentRootBasedOnConfiguration
-     */
-    public function testInstallerWritesGitIgnoreFilesToEachAssetDirectoryItCopies()
+    public function testInstallerUpdatesPublicGitIgnoreFileWithEntryForEachAssetDirectoryItCopies()
     {
-        $this->markTestIncomplete();
-        // Check that each major directory created has a .gitignore file, and
-        // that the contents exclude the directory itself from checkin.
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent(sprintf('<' . "?php\nreturn %s;", var_export($this->getValidConfig(), true)));
+
+        $installer = $this->createInstaller();
+        $installer->setProjectPath(vfsStream::url('project'));
+
+        $this->assertNull($installer($this->event->reveal()));
+
+        $gitIgnoreFile = vfsStream::url('project/public/.gitignore');
+        $this->assertFileExists($gitIgnoreFile, 'public/.gitignore was not created');
+        $contents = file_get_contents($gitIgnoreFile);
+        $this->assertContains("\nzf-apigility", $contents, 'public/.gitignore is missing the zf-apigility/ entry');
+        $this->assertContains("\nzf-barbaz/", $contents, 'public/.gitignore is missing the zf-barbaz/ entry');
+        $this->assertContains("\nzf-foobar/", $contents, 'public/.gitignore is missing the zf-foobar/ entry');
     }
 }
