@@ -1,5 +1,7 @@
 # zf-asset-manager
 
+[![Build Status](https://travis-ci.org/zfcampus/zf-asset-manager.png)](https://travis-ci.org/zfcampus/zf-asset-manager)
+
 zf-asset-manager is a composer plugin that will copy configured web-accessible
 assets into the public document root of your Zend Framework application. It uses
 the configuration format of [rwoverdijk/AssetManager](https://github.com/rwoverdijk/AssetManager),
