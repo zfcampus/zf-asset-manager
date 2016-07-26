@@ -7,6 +7,12 @@
 
 namespace ZFTest\AssetManager;
 
+use Composer\Composer;
+use Composer\DependencyResolver\Operation\UninstallOperation;
+use Composer\Installer\InstallationManager;
+use Composer\Installer\PackageEvent;
+use Composer\IO\IOInterface;
+use Composer\Package\PackageInterface;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 use PHPUnit_Framework_TestCase as TestCase;
@@ -14,16 +20,101 @@ use ZF\AssetManager\AssetUninstaller;
 
 class AssetUninstallerTest extends TestCase
 {
+    protected $installedAssets = [
+        'public/zf-apigility/css/styles.css',
+        'public/zf-apigility/img/favicon.ico',
+        'public/zf-apigility/js/scripts.js',
+        'public/zf-barbaz/css/styles.css',
+        'public/zf-barbaz/img/favicon.ico',
+        'public/zf-barbaz/js/scripts.js',
+        'public/zf-foobar/images/favicon.ico',
+        'public/zf-foobar/scripts/scripts.js',
+        'public/zf-foobar/styles/styles.css',
+    ];
+
+    protected $structure = [
+        'public' => [
+            'zf-apigility' => [
+                'css' => [
+                    'styles.css' => '',
+                ],
+                'img' => [
+                    'favicon.ico' => '',
+                ],
+                'js' => [
+                    'scripts.js' => '',
+                ],
+            ],
+            'zf-barbaz' => [
+                'css' => [
+                    'styles.css' => '',
+                ],
+                'img' => [
+                    'favicon.ico' => '',
+                ],
+                'js' => [
+                    'scripts.js' => '',
+                ],
+            ],
+            'zf-foobar' => [
+                'images' => [
+                    'favicon.ico' => '',
+                ],
+                'scripts' => [
+                    'scripts.js' => '',
+                ],
+                'styles' => [
+                    'styles.css' => '',
+                ],
+            ],
+        ],
+    ];
+
     public function setUp()
     {
-        // Create vfs directory for package
-        //   - Should have a config subdir
-        //     - Put config from above in that dir
-        //
-        // Create vfs directory for project
-        //   - Should have a public subdir
-        //
-        // Seed a Composer package.
+        // Create virtual filesystem
+        $this->filesystem = vfsStream::setup('project');
+    }
+
+    public function createAssets()
+    {
+        vfsStream::create($this->structure);
+    }
+
+    public function createUninstaller()
+    {
+        vfsStream::newFile('public/.gitignore')->at($this->filesystem);
+
+        $this->package = $this->prophesize(PackageInterface::class);
+
+        $installationManager = $this->prophesize(InstallationManager::class);
+        $installationManager
+            ->getInstallPath($this->package->reveal())
+            ->willReturn(vfsStream::url('project/vendor/org/package'))
+            ->shouldBeCalled();
+
+        $composer = $this->prophesize(Composer::class);
+        $composer
+            ->getInstallationManager()
+            ->will([$installationManager, 'reveal'])
+            ->shouldBeCalled();
+
+        $operation = $this->prophesize(UninstallOperation::class);
+        $operation
+            ->getPackage()
+            ->will([$this->package, 'reveal'])
+            ->shouldBeCalled();
+
+        $this->event = $this->prophesize(PackageEvent::class);
+        $this->event
+            ->getOperation()
+            ->will([$operation, 'reveal'])
+            ->shouldBeCalled();
+
+        return new AssetUninstaller(
+            $composer->reveal(),
+            $this->prophesize(IOInterface::class)->reveal()
+        );
     }
 
     public function getValidConfig()
@@ -42,66 +133,172 @@ class AssetUninstallerTest extends TestCase
 
     public function testUninstallerAbortsIfNoPublicSubdirIsPresentInProjectRoot()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with no subdirs.
-        //
-        // Seed a Composer package.
+        $composer = $this->prophesize(Composer::class);
+        $composer->getInstallationManager()->shouldNotBeCalled();
+
+        $uninstaller = new AssetUninstaller(
+            $composer->reveal(),
+            $this->prophesize(IOInterface::class)->reveal()
+        );
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        $event = $this->prophesize(PackageEvent::class);
+        $event->getOperation()->shouldNotBeCalled();
+
+        $this->assertNull($uninstaller($event->reveal()));
+    }
+
+    public function testUninstallerAbortsIfNoPublicGitignoreFileFound()
+    {
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        $composer = $this->prophesize(Composer::class);
+        $composer->getInstallationManager()->shouldNotBeCalled();
+
+        $uninstaller = new AssetUninstaller(
+            $composer->reveal(),
+            $this->prophesize(IOInterface::class)->reveal()
+        );
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        $event = $this->prophesize(PackageEvent::class);
+        $event->getOperation()->shouldNotBeCalled();
+
+        $this->assertNull($uninstaller($event->reveal()));
     }
 
     public function testUninstallerAbortsIfPackageDoesNotHaveConfiguration()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with public subdir
-        //
-        // Create vfs directory for package, with no subdirs
-        //
-        // Seed a Composer package.
+        vfsStream::newDirectory('public')->at($this->filesystem);
+        $this->createAssets();
+
+        $uninstaller = $this->createUninstaller();
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        $this->assertNull($uninstaller($this->event->reveal()));
+
+        foreach ($this->installedAssets as $asset) {
+            $path = vfsStream::url('project/', $asset);
+            $this->assertFileExists($path, sprintf('Expected file "%s"; file not found!', $path));
+        }
     }
 
     public function testUninstallerAbortsIfConfigurationDoesNotContainAssetInformation()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with public subdir
-        //
-        // Create vfs directory for package, with config/module.config.php returning empty array.
-        //
-        // Seed a Composer package.
+        vfsStream::newDirectory('public')->at($this->filesystem);
+        $this->createAssets();
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent('<' . "?php\nreturn [];");
+
+        $uninstaller = $this->createUninstaller();
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        $this->assertNull($uninstaller($this->event->reveal()));
+
+        foreach ($this->installedAssets as $asset) {
+            $path = vfsStream::url('project/', $asset);
+            $this->assertFileExists($path, sprintf('Expected file "%s"; file not found!', $path));
+        }
     }
 
     public function testUninstallerAbortsIfConfiguredAssetsAreNotPresentInDocroot()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with public subdir, but no copied assets.
-        //
-        // Create vfs directory for package, with config/module.config.php returning getValidConfig.
-        //
-        // Seed a Composer package.
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent(sprintf('<' . "?php\nreturn %s;", var_export($this->getValidConfig(), true)));
+
+        $uninstaller = $this->createUninstaller();
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        // Seeding the .gitignore happens after createUninstaller, as that
+        // seeds an empty file by default.
+        $gitignore = "\nzf-apigility/\nzf-barbaz/\nzf-foobar/";
+        file_put_contents(
+            vfsStream::url('project/public/.gitignore'),
+            $gitignore
+        );
+
+        $this->assertNull($uninstaller($this->event->reveal()));
+
+        $test = file_get_contents(vfsStream::url('project/public/.gitignore'));
+        $this->assertEquals($gitignore, $test);
     }
 
     public function testUninstallerRemovesAssetsFromDocumentRootBasedOnConfiguration()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with public subdir, and copied assets.
-        //   - Asset directories MUST have .gitignore files present
-        //
-        // Create vfs directory for package, with config/module.config.php returning getValidConfig().
-        //
-        // Seed a Composer package.
-        //
-        // - Should loop through each path and:
-        //   - recursively remove any subdirectories found from the document root, if matched.
+        vfsStream::newDirectory('public')->at($this->filesystem);
+        $this->createAssets();
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent(sprintf('<' . "?php\nreturn %s;", var_export($this->getValidConfig(), true)));
+
+        $uninstaller = $this->createUninstaller();
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        // Seeding the .gitignore happens after createUninstaller, as that
+        // seeds an empty file by default.
+        $gitignore = "\nzf-apigility/\nzf-barbaz/\nzf-foobar/";
+        file_put_contents(
+            vfsStream::url('project/public/.gitignore'),
+            $gitignore
+        );
+
+        $this->assertNull($uninstaller($this->event->reveal()));
+
+        foreach ($this->installedAssets as $asset) {
+            $path = sprintf('%s/%s', vfsStream::url('project'), $asset);
+            $this->assertFileNotExists($path, sprintf('File "%s" exists when it should have been removed', $path));
+        }
+
+        $test = file_get_contents(vfsStream::url('project/public/.gitignore'));
+        $this->assertRegexp('/^\s*$/s', $test);
     }
 
-    public function testUninstallerDoesNotRemoveAssetsFromDcoumentRootIfGitignoreFilesAreMissing()
+    public function testUninstallerDoesNotRemoveAssetsFromDocumentRootIfGitignoreEntryIsMissing()
     {
-        $this->markTestIncomplete();
-        // Create vfs directory for project, with public subdir, and copied assets.
-        //   - Asset directories MUST NOT have .gitignore files present
-        //
-        // Create vfs directory for package, with config/module.config.php returning getValidConfig().
-        //
-        // Seed a Composer package.
-        //
-        // - Should loop through each path and DO NOTHING; asset dirs should remain.
+        vfsStream::newDirectory('public')->at($this->filesystem);
+        $this->createAssets();
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent(sprintf('<' . "?php\nreturn %s;", var_export($this->getValidConfig(), true)));
+
+        $uninstaller = $this->createUninstaller();
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        // Seeding the .gitignore happens after createUninstaller, as that
+        // seeds an empty file by default.
+        $gitignore = "\nzf-barbaz/\nzf-foobar/";
+        file_put_contents(
+            vfsStream::url('project/public/.gitignore'),
+            $gitignore
+        );
+
+        $this->assertNull($uninstaller($this->event->reveal()));
+
+        foreach ($this->installedAssets as $asset) {
+            $path = sprintf('%s/%s', vfsStream::url('project'), $asset);
+
+            switch (true) {
+                case preg_match('#/zf-apigility/#', $asset):
+                    $this->assertFileExists($path, sprintf('Expected file "%s"; not found', $path));
+                    break;
+                case preg_match('#/zf-barbaz/#', $asset):
+                    // fall-through
+                case preg_match('#/zf-foobar/#', $asset):
+                    // fall-through
+                default:
+                    $this->assertFileNotExists($path, sprintf('File "%s" exists when it should have been removed', $path));
+                    break;
+            }
+        }
+
+        $test = file_get_contents(vfsStream::url('project/public/.gitignore'));
+        $this->assertEmpty($test);
     }
 }
