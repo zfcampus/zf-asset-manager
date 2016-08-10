@@ -150,12 +150,22 @@ class AssetInstaller
      */
     private function updateGitignore($gitignoreFile, $path)
     {
-        $gitignore = fopen($gitignoreFile, 'a');
-        if (false === $gitignore) {
+        $gitignoreContents = file_exists($gitignoreFile)
+            ? file_get_contents($gitignoreFile)
+            : '';
+
+        if (false === $gitignoreContents) {
             return;
         }
 
-        fwrite($gitignore, sprintf("\n%s/", $path));
-        fclose($gitignore);
+        $path = sprintf("%s/", $path);
+        $lines = preg_split("/(\r\n?|\n)/", $gitignoreContents);
+        if (false !== array_search($path, $lines)) {
+            return;
+        }
+
+        $lines[] = $path;
+
+        file_put_contents($gitignoreFile, implode("\n", $lines));
     }
 }
