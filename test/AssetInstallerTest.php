@@ -176,4 +176,28 @@ class AssetInstallerTest extends TestCase
         $this->assertContains("\nzf-barbaz/", $contents, 'public/.gitignore is missing the zf-barbaz/ entry');
         $this->assertContains("\nzf-foobar/", $contents, 'public/.gitignore is missing the zf-foobar/ entry');
     }
+
+    public function testInstallerDoesNotAddDuplicateEntriesToGitignore()
+    {
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        vfsStream::newFile('public/.gitignore')
+            ->at($this->filesystem)
+            ->setContent("zf-apigility/\nzf-bar-baz/\nzf-foobar/\n");
+        $gitIgnoreFile = vfsStream::url('project/public/.gitignore');
+        $this->assertFileExists($gitIgnoreFile, 'public/.gitignore was not created; cannot continue test');
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent(sprintf('<' . "?php\nreturn %s;", var_export($this->getValidConfig(), true)));
+
+        $installer = $this->createInstaller();
+        $installer->setProjectPath(vfsStream::url('project'));
+
+        $this->assertNull($installer($this->event->reveal()));
+
+        $gitIgnoreContents = file_get_contents($gitIgnoreFile);
+        $gitIgnoreContents = explode("\n", $gitIgnoreContents);
+        $this->assertEquals(array_unique($gitIgnoreContents), $gitIgnoreContents);
+    }
 }
