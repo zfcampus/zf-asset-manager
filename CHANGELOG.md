@@ -2,11 +2,14 @@
 
 All notable changes to this project will be documented in this file, in reverse chronological order by release.
 
-## 1.1.0 - TBD
+## 1.1.0 - 2016-08-12
 
 ### Added
 
-- Nothing.
+- [#2](https://github.com/zfcampus/zf-asset-manager/pull/2) adds a
+  post-package-update event handler that uninstalls assets for the package, and
+  then installs any defined in the new package version. This feature will allow
+  seamless updating of assets as they are updated in package dependencies.
 
 ### Deprecated
 
