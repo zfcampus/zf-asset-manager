@@ -8,6 +8,9 @@
 namespace ZF\AssetManager;
 
 use Composer\Composer;
+use Composer\DependencyResolver\Operation\InstallOperation;
+use Composer\DependencyResolver\Operation\OperationInterface;
+use Composer\DependencyResolver\Operation\UninstallOperation;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Installer\PackageEvent;
 use Composer\IO\IOInterface;
@@ -72,13 +75,23 @@ class Plugin implements PluginInterface, EventSubscriberInterface
      */
     public function onPostPackageUpdate(PackageEvent $event)
     {
-        // Uninstall any previously installed packages
-        $uninstall = new AssetUninstaller($this->composer, $this->io);
-        $uninstall($event);
+        $operation = $event->getOperation();
+        $initialPackage = $operation->getInitialPackage();
+        $targetPackage = $operation->getTargetPackage();
 
-        // Install packages
+        // Uninstall any previously installed assets
+        $uninstall = new AssetUninstaller($this->composer, $this->io);
+        $uninstall($this->createPackageEventWithOperation(
+            $event,
+            new UninstallOperation($initialPackage, $operation->getReason())
+        ));
+
+        // Install new assets
         $installer = new AssetInstaller($this->composer, $this->io);
-        $installer($event);
+        $installer($this->createPackageEventWithOperation(
+            $event,
+            new InstallOperation($targetPackage, $operation->getReason())
+        ));
     }
 
     /**
@@ -90,5 +103,28 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     {
         $uninstall = new AssetUninstaller($this->composer, $this->io);
         $uninstall($event);
+    }
+
+    /**
+     * Creates and returns a new PackageEvent with the given operation.
+     *
+     * @param PackageEvent $event
+     * @param OperationInterface $operation
+     * @return PackageEvent
+     */
+    private function createPackageEventWithOperation(PackageEvent $event, OperationInterface $operation)
+    {
+        return new PackageEvent(
+            $event->getName(),
+            $this->composer,
+            $this->io,
+            $event->isDevMode(),
+            $event->getPolicy(),
+            $event->getPool(),
+            $event->getInstalledRepo(),
+            $event->getRequest(),
+            $event->getOperations(),
+            $operation
+        );
     }
 }
