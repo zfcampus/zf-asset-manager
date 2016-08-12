@@ -34,6 +34,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     {
         return [
             'post-package-install'  => 'onPostPackageInstall',
+            'post-package-update'  => 'onPostPackageUpdate',
             'pre-package-uninstall' => 'onPrePackageUninstall',
         ];
     }
@@ -57,6 +58,25 @@ class Plugin implements PluginInterface, EventSubscriberInterface
      */
     public function onPostPackageInstall(PackageEvent $event)
     {
+        $installer = new AssetInstaller($this->composer, $this->io);
+        $installer($event);
+    }
+
+    /**
+     * Updates assets provided by the package, if any.
+     *
+     * Uninstalls any previously installed assets for the package, and then
+     * runs an install for the package.
+     *
+     * @param PackageEvent $event
+     */
+    public function onPostPackageUpdate(PackageEvent $event)
+    {
+        // Uninstall any previously installed packages
+        $uninstall = new AssetUninstaller($this->composer, $this->io);
+        $uninstall($event);
+
+        // Install packages
         $installer = new AssetInstaller($this->composer, $this->io);
         $installer($event);
     }
