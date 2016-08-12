@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file, in reverse chronological order by release.
 
-## 1.1.1 - TBD
+## 1.1.1 - 2016-08-12
 
 ### Added
 
@@ -18,7 +18,11 @@ All notable changes to this project will be documented in this file, in reverse 
 
 ### Fixed
 
-- Nothing.
+- [#3](https://github.com/zfcampus/zf-asset-manager/pull/3) fixes the
+  `onPostPackageUpdate()` logic to pull both the initial and target package from
+  the `UpdateOperation` composed in the `PackageEvent`, and to create
+  new `PackageEvent` instances containing appropriate `UninstallOperation` and
+  `InstallOperation` instances to pass to the uninstaller and installer.
 
 ## 1.1.0 - 2016-08-12
 
