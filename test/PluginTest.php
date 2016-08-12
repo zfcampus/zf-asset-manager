@@ -16,6 +16,7 @@ class PluginTest extends TestCase
     {
         $this->assertEquals([
             'post-package-install' => 'onPostPackageInstall',
+            'post-package-update' => 'onPostPackageUpdate',
             'pre-package-uninstall' => 'onPrePackageUninstall',
         ], Plugin::getSubscribedEvents());
     }
