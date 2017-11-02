@@ -47,6 +47,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
             'post-package-install'  => 'onPostPackageInstall',
             'post-package-update'   => 'onPostPackageUpdate',
             'pre-package-uninstall' => 'onPrePackageUninstall',
+            'pre-package-update'    => 'onPrePackageUpdate',
         ];
     }
 
@@ -88,25 +89,16 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     }
 
     /**
-     * Updates assets provided by the package, if any.
+     * Installs assets for a package being updated.
      *
-     * Uninstalls any previously installed assets for the package, and then
-     * memoizes an install operation to run post-autoload-dump.
+     * Memoizes an install operation to run post-autoload-dump.
      *
      * @param PackageEvent $event
      */
     public function onPostPackageUpdate(PackageEvent $event)
     {
         $operation = $event->getOperation();
-        $initialPackage = $operation->getInitialPackage();
         $targetPackage = $operation->getTargetPackage();
-
-        // Uninstall any previously installed assets
-        $uninstall = new AssetUninstaller($this->composer, $this->io);
-        $uninstall($this->createPackageEventWithOperation(
-            $event,
-            new UninstallOperation($initialPackage, $operation->getReason())
-        ));
 
         // Install new assets; delay until post-autoload-update
         $this->installers[] = function () use ($event, $operation, $targetPackage) {
@@ -127,6 +119,24 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     {
         $uninstall = new AssetUninstaller($this->composer, $this->io);
         $uninstall($event);
+    }
+
+    /**
+     * Removes previously installed assets for a package being updated.
+     *
+     * @param PackageEvent $event
+     */
+    public function onPrePackageUpdate(PackageEvent $event)
+    {
+        $operation = $event->getOperation();
+        $initialPackage = $operation->getInitialPackage();
+
+        // Uninstall any previously installed assets
+        $uninstall = new AssetUninstaller($this->composer, $this->io);
+        $uninstall($this->createPackageEventWithOperation(
+            $event,
+            new UninstallOperation($initialPackage, $operation->getReason())
+        ));
     }
 
     /**

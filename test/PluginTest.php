@@ -40,6 +40,7 @@ class PluginTest extends TestCase
             'post-package-install'  => 'onPostPackageInstall',
             'post-package-update'   => 'onPostPackageUpdate',
             'pre-package-uninstall' => 'onPrePackageUninstall',
+            'pre-package-update'    => 'onPrePackageUpdate',
         ], Plugin::getSubscribedEvents());
     }
 
@@ -62,12 +63,22 @@ class PluginTest extends TestCase
         $this->assertNull($plugin->onPrePackageUninstall($uninstallEvent));
     }
 
-    public function testUpdateOperationShouldMemoizeInstallOperationAndInvokeAssetUninstaller()
+    public function testPreUpdateOperationShouldTriggerAssetUninstaller()
     {
         $plugin = new Plugin();
         $this->assertNull($plugin->activate($this->composer->reveal(), $this->io->reveal()));
 
-        $updateEvent = $this->mockUpdateEvent();
+        $updateEvent = $this->mockPreUpdateEvent();
+        $this->assertNull($plugin->onPrePackageUpdate($updateEvent));
+        $this->assertAttributeCount(0, 'installers', $plugin);
+    }
+
+    public function testPostUpdateOperationShouldMemoizeInstallOperation()
+    {
+        $plugin = new Plugin();
+        $this->assertNull($plugin->activate($this->composer->reveal(), $this->io->reveal()));
+
+        $updateEvent = $this->mockPostUpdateEvent();
         $this->assertNull($plugin->onPostPackageUpdate($updateEvent));
         $this->assertAttributeCount(1, 'installers', $plugin);
     }
@@ -109,14 +120,44 @@ class PluginTest extends TestCase
         return $event->reveal();
     }
 
-    private function mockUpdateEvent()
+    private function mockPostUpdateEvent()
     {
-        $initialPackage = $this->prophesize(PackageInterface::class);
         $targetPackage = $this->prophesize(PackageInterface::class);
 
         $operation = $this->prophesize(UpdateOperation::class);
-        $operation->getInitialPackage()->will([$initialPackage, 'reveal']);
+        $operation->getInitialPackage()->shouldNotBeCalled();
         $operation->getTargetPackage()->will([$targetPackage, 'reveal']);
+        $operation->getReason()->willReturn('update');
+
+        $policy = $this->prophesize(PolicyInterface::class);
+        $pool = $this->prophesize(Pool::class);
+        $repo = $this->prophesize(CompositeRepository::class);
+        $request = $this->prophesize(Request::class);
+
+        $event = $this->prophesize(PackageEvent::class);
+        $event
+            ->getOperation()
+            ->will([$operation, 'reveal'])
+            ->shouldBeCalled();
+
+        $event->getName()->willReturn('post-package-update');
+        $event->isDevMode()->willReturn(true);
+        $event->getPolicy()->will([$policy, 'reveal']);
+        $event->getPool()->will([$pool, 'reveal']);
+        $event->getInstalledRepo()->will([$repo, 'reveal']);
+        $event->getRequest()->will([$request, 'reveal']);
+        $event->getOperations()->willReturn([]);
+
+        return $event->reveal();
+    }
+
+    private function mockPreUpdateEvent()
+    {
+        $initialPackage = $this->prophesize(PackageInterface::class);
+
+        $operation = $this->prophesize(UpdateOperation::class);
+        $operation->getInitialPackage()->will([$initialPackage, 'reveal']);
+        $operation->getTargetPackage()->shouldNotBeCalled();
         $operation->getReason()->willReturn('update');
 
         $policy = $this->prophesize(PolicyInterface::class);
