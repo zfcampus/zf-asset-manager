@@ -36,13 +36,6 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     private $io;
 
     /**
-     * Array of uninstallers to run following a dump-autoload operation.
-     *
-     * @var callable[]
-     */
-    private $uninstallers = [];
-
-    /**
      * Provide composer event listeners.
      *
      * @return array
@@ -70,15 +63,10 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     }
 
     /**
-     * Execute all uninstallers and installers.
+     * Execute all installers.
      */
     public function onPostAutoloadDump()
     {
-        while (0 < count($this->uninstallers)) {
-            $uninstaller = array_shift($this->uninstallers);
-            $uninstaller();
-        }
-
         while (0 < count($this->installers)) {
             $installer = array_shift($this->installers);
             $installer();
@@ -103,7 +91,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
      * Updates assets provided by the package, if any.
      *
      * Uninstalls any previously installed assets for the package, and then
-     * runs an install for the package.
+     * memoizes an install operation to run post-autoload-dump.
      *
      * @param PackageEvent $event
      */
@@ -114,15 +102,13 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $targetPackage = $operation->getTargetPackage();
 
         // Uninstall any previously installed assets
-        $this->uninstallers[] = function () use ($event, $initialPackage, $operation) {
-            $uninstall = new AssetUninstaller($this->composer, $this->io);
-            $uninstall($this->createPackageEventWithOperation(
-                $event,
-                new UninstallOperation($initialPackage, $operation->getReason())
-            ));
-        };
+        $uninstall = new AssetUninstaller($this->composer, $this->io);
+        $uninstall($this->createPackageEventWithOperation(
+            $event,
+            new UninstallOperation($initialPackage, $operation->getReason())
+        ));
 
-        // Install new assets
+        // Install new assets; delay until post-autoload-update
         $this->installers[] = function () use ($event, $operation, $targetPackage) {
             $installer = new AssetInstaller($this->composer, $this->io);
             $installer($this->createPackageEventWithOperation(
@@ -139,10 +125,8 @@ class Plugin implements PluginInterface, EventSubscriberInterface
      */
     public function onPrePackageUninstall(PackageEvent $event)
     {
-        $this->uninstallers[] = function () use ($event) {
-            $uninstall = new AssetUninstaller($this->composer, $this->io);
-            $uninstall($event);
-        };
+        $uninstall = new AssetUninstaller($this->composer, $this->io);
+        $uninstall($event);
     }
 
     /**
