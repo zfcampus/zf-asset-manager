@@ -21,7 +21,7 @@ trait UnparseableTokensTrait
     ];
 
     /**
-     * @var string $packageConfigPath
+     * @param string $packageConfigPath
      * @return bool
      */
     private function configFileNeedsParsing($packageConfigPath)
@@ -34,7 +34,7 @@ trait UnparseableTokensTrait
     }
 
     /**
-     * @var string $packageConfigPath
+     * @param string $packageConfigPath
      * @return bool
      */
     private function isParseableContent($packageConfigPath)
