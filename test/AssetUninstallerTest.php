@@ -311,15 +311,8 @@ class AssetUninstallerTest extends TestCase
     public function problematicConfiguration()
     {
         return [
-            'class'        => [__DIR__ . '/TestAsset/problematic-configs/class.config.php'],
-            'clone'        => [__DIR__ . '/TestAsset/problematic-configs/clone.config.php'],
-            'double-colon' => [__DIR__ . '/TestAsset/problematic-configs/double-colon.config.php'],
-            'eval'         => [__DIR__ . '/TestAsset/problematic-configs/eval.config.php'],
-            'exit'         => [__DIR__ . '/TestAsset/problematic-configs/exit.config.php'],
-            'extends'      => [__DIR__ . '/TestAsset/problematic-configs/extends.config.php'],
-            'interface'    => [__DIR__ . '/TestAsset/problematic-configs/interface.config.php'],
-            'new'          => [__DIR__ . '/TestAsset/problematic-configs/new.config.php'],
-            'trait'        => [__DIR__ . '/TestAsset/problematic-configs/trait.config.php'],
+            'eval' => [__DIR__ . '/TestAsset/problematic-configs/eval.config.php'],
+            'exit' => [__DIR__ . '/TestAsset/problematic-configs/exit.config.php'],
         ];
     }
 
@@ -381,33 +374,6 @@ class AssetUninstallerTest extends TestCase
 
         $uninstaller = $this->createUninstaller();
         $uninstaller->setProjectPath(vfsStream::url('project'));
-
-        $this->io
-            ->writeError(Argument::any())
-            ->shouldNotBeCalled();
-
-        $this->assertNull($uninstaller($this->event->reveal()));
-
-        foreach ($this->installedAssets as $asset) {
-            $path = vfsStream::url('project/', $asset);
-            $this->assertFileExists($path, sprintf('Expected file "%s"; file not found!', $path));
-        }
-    }
-
-    public function testInstallerAllowsConfigurationContainingClassPseudoConstant()
-    {
-        vfsStream::newDirectory('public')->at($this->filesystem);
-
-        vfsStream::newFile('vendor/org/package/config/module.config.php')
-            ->at($this->filesystem)
-            ->setContent("<?php\nreturn [\n    'some-key' => AssetUninstaller::class,\n    'asset-manager' => []];");
-
-        $uninstaller = $this->createUninstaller();
-        $uninstaller->setProjectPath(vfsStream::url('project'));
-
-        $this->io
-            ->writeError(Argument::any())
-            ->shouldNotBeCalled();
 
         $this->assertNull($uninstaller($this->event->reveal()));
 

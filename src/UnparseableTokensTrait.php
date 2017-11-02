@@ -16,15 +16,8 @@ trait UnparseableTokensTrait
      * @var int[]
      */
     private $unparseableTokens = [
-        T_CLASS,
-        T_CLONE,
-        T_DOUBLE_COLON,
         T_EVAL,
         T_EXIT,
-        T_EXTENDS,
-        T_INTERFACE,
-        T_NEW,
-        T_TRAIT,
     ];
 
     /**

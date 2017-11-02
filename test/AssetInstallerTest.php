@@ -207,15 +207,8 @@ class AssetInstallerTest extends TestCase
     public function problematicConfiguration()
     {
         return [
-            'class'        => [__DIR__ . '/TestAsset/problematic-configs/class.config.php'],
-            'clone'        => [__DIR__ . '/TestAsset/problematic-configs/clone.config.php'],
-            'double-colon' => [__DIR__ . '/TestAsset/problematic-configs/double-colon.config.php'],
-            'eval'         => [__DIR__ . '/TestAsset/problematic-configs/eval.config.php'],
-            'exit'         => [__DIR__ . '/TestAsset/problematic-configs/exit.config.php'],
-            'extends'      => [__DIR__ . '/TestAsset/problematic-configs/extends.config.php'],
-            'interface'    => [__DIR__ . '/TestAsset/problematic-configs/interface.config.php'],
-            'new'          => [__DIR__ . '/TestAsset/problematic-configs/new.config.php'],
-            'trait'        => [__DIR__ . '/TestAsset/problematic-configs/trait.config.php'],
+            'eval' => [__DIR__ . '/TestAsset/problematic-configs/eval.config.php'],
+            'exit' => [__DIR__ . '/TestAsset/problematic-configs/exit.config.php'],
         ];
     }
 
