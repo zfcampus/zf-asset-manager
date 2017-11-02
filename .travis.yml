@@ -18,7 +18,6 @@ matrix:
     - php: 5.6
       env:
         - DEPS=lowest
-        - LEGACY_DEPS="phpunit/phpunit"
     - php: 5.6
       env:
         - DEPS=locked
@@ -26,11 +25,9 @@ matrix:
     - php: 5.6
       env:
         - DEPS=latest
-        - LEGACY_DEPS="phpunit/phpunit"
     - php: 7
       env:
         - DEPS=lowest
-        - LEGACY_DEPS="phpunit/phpunit"
     - php: 7
       env:
         - DEPS=locked
@@ -39,7 +36,6 @@ matrix:
     - php: 7
       env:
         - DEPS=latest
-        - LEGACY_DEPS="phpunit/phpunit"
     - php: 7.1
       env:
         - DEPS=lowest
