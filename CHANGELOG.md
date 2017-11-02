@@ -6,7 +6,8 @@ All notable changes to this project will be documented in this file, in reverse 
 
 ### Added
 
-- Nothing.
+- [#6](https://github.com/zfcampus/zf-asset-manager/pull/6) adds support for
+  PHP 7.1 and 7.2.
 
 ### Changed
 
@@ -38,7 +39,8 @@ All notable changes to this project will be documented in this file, in reverse 
 
 ### Removed
 
-- Nothing.
+- [#6](https://github.com/zfcampus/zf-asset-manager/pull/6) removes support for
+  HHVM.
 
 ### Fixed
 
