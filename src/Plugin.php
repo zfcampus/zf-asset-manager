@@ -24,9 +24,23 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     private $composer;
 
     /**
+     * Array of installers to run following a dump-autoload operation.
+     *
+     * @var callable[]
+     */
+    private $installers = [];
+
+    /**
      * @var IOInterface
      */
     private $io;
+
+    /**
+     * Array of uninstallers to run following a dump-autoload operation.
+     *
+     * @var callable[]
+     */
+    private $uninstallers = [];
 
     /**
      * Provide composer event listeners.
@@ -36,8 +50,9 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         return [
+            'post-autoload-dump'    => 'onPostAutoloadDump',
             'post-package-install'  => 'onPostPackageInstall',
-            'post-package-update'  => 'onPostPackageUpdate',
+            'post-package-update'   => 'onPostPackageUpdate',
             'pre-package-uninstall' => 'onPrePackageUninstall',
         ];
     }
@@ -55,14 +70,33 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     }
 
     /**
-     * Install assets provided by the package, if any.
+     * Execute all uninstallers and installers.
+     */
+    public function onPostAutoloadDump()
+    {
+        while (0 < count($this->uninstallers)) {
+            $uninstaller = array_shift($this->uninstallers);
+            $uninstaller();
+        }
+
+        while (0 < count($this->installers)) {
+            $installer = array_shift($this->installers);
+            $installer();
+        }
+    }
+
+    /**
+     * Memoize an installer for the package being installed.
      *
      * @param PackageEvent $event
      */
     public function onPostPackageInstall(PackageEvent $event)
     {
         $installer = new AssetInstaller($this->composer, $this->io);
-        $installer($event);
+        $this->installers[] = function () use ($event) {
+            $installer = new AssetInstaller($this->composer, $this->io);
+            $installer($event);
+        };
     }
 
     /**
@@ -80,18 +114,22 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $targetPackage = $operation->getTargetPackage();
 
         // Uninstall any previously installed assets
-        $uninstall = new AssetUninstaller($this->composer, $this->io);
-        $uninstall($this->createPackageEventWithOperation(
-            $event,
-            new UninstallOperation($initialPackage, $operation->getReason())
-        ));
+        $this->uninstallers[] = function () use ($event, $initialPackage, $operation) {
+            $uninstall = new AssetUninstaller($this->composer, $this->io);
+            $uninstall($this->createPackageEventWithOperation(
+                $event,
+                new UninstallOperation($initialPackage, $operation->getReason())
+            ));
+        };
 
         // Install new assets
-        $installer = new AssetInstaller($this->composer, $this->io);
-        $installer($this->createPackageEventWithOperation(
-            $event,
-            new InstallOperation($targetPackage, $operation->getReason())
-        ));
+        $this->installers[] = function () use ($event, $operation, $targetPackage) {
+            $installer = new AssetInstaller($this->composer, $this->io);
+            $installer($this->createPackageEventWithOperation(
+                $event,
+                new InstallOperation($targetPackage, $operation->getReason())
+            ));
+        };
     }
 
     /**
@@ -101,8 +139,10 @@ class Plugin implements PluginInterface, EventSubscriberInterface
      */
     public function onPrePackageUninstall(PackageEvent $event)
     {
-        $uninstall = new AssetUninstaller($this->composer, $this->io);
-        $uninstall($event);
+        $this->uninstallers[] = function () use ($event) {
+            $uninstall = new AssetUninstaller($this->composer, $this->io);
+            $uninstall($event);
+        };
     }
 
     /**
