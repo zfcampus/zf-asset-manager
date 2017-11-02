@@ -18,7 +18,7 @@ use Composer\Package\PackageInterface;
 use Composer\Repository\CompositeRepository;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use ZF\AssetManager\Plugin;
 
