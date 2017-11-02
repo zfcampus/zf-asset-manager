@@ -8,23 +8,29 @@ All notable changes to this project will be documented in this file, in reverse 
 
 - Nothing.
 
-### Deprecated
+### Changed
 
-- Nothing.
+- [#5](https://github.com/zfcampus/zf-asset-manager/pull/5) changes a number of
+  internals:
 
-### Removed
+  - Install and uninstall operations check for `asset_manager` configuration
+    directives in a config file before including it, skipping the file if none
+    are detected.
 
-- Nothing.
+  - Install and uninstall operations verify that a config file does not include
+    `exit()` or `eval()` statements before attempting to consume it; if they are
+    present, the plugin emits a warning.
 
-### Fixed
+  - Uninstall operations during a package update are now performed during the
+    `pre-package-update` event instead of together with install operations
+    during 'post-package-update`. This prevents autoloader issues when classes,
+    constants, etc. referenced by the configuration change between versions of a
+    package.
 
-- Nothing.
-
-## 1.1.2 - TBD
-
-### Added
-
-- Nothing.
+  - Install operations are aggregated during the `post-package-install` event,
+    and then executed en masse during the `post-autoload-dump` event. This
+    prevents autoloader issues due to unknown classes that were reported
+    in previous versions.
 
 ### Deprecated
 
