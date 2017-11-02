@@ -1,0 +1,5 @@
+<?php // @codingStandardsIgnoreFile
+
+class Failure
+{
+}

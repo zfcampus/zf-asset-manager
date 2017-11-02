@@ -16,6 +16,8 @@ use RecursiveIteratorIterator;
 
 class AssetInstaller
 {
+    use UnparseableTokensTrait;
+
     /**
      * @var Composer
      */
@@ -68,6 +70,17 @@ class AssetInstaller
 
         $packageConfigPath = sprintf('%s/config/module.config.php', $packagePath);
         if (! file_exists($packageConfigPath)) {
+            return;
+        }
+
+        if (! $this->isParseableContent($packageConfigPath)) {
+            $this->io->writeError(sprintf(
+                'Unable to check for asset configuration in %s; '
+                . 'file contains one or more of a class/interface/trait, '
+                . 'clone statement, or use of class constants or static members. '
+                . 'You may need to manually aggregate assets from that package.',
+                $packageConfigPath
+            ));
             return;
         }
 

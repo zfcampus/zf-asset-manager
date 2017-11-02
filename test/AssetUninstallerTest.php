@@ -16,6 +16,7 @@ use Composer\Package\PackageInterface;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 use PHPUnit_Framework_TestCase as TestCase;
+use Prophecy\Argument;
 use ZF\AssetManager\AssetUninstaller;
 
 class AssetUninstallerTest extends TestCase
@@ -111,9 +112,11 @@ class AssetUninstallerTest extends TestCase
             ->will([$operation, 'reveal'])
             ->shouldBeCalled();
 
+        $this->io = $this->prophesize(IOInterface::class);
+
         return new AssetUninstaller(
             $composer->reveal(),
-            $this->prophesize(IOInterface::class)->reveal()
+            $this->io->reveal()
         );
     }
 
@@ -303,5 +306,49 @@ class AssetUninstallerTest extends TestCase
 
         $test = file_get_contents(vfsStream::url('project/public/.gitignore'));
         $this->assertEmpty($test);
+    }
+
+    public function problematicConfiguration()
+    {
+        return [
+            'class'        => [__DIR__ . '/TestAsset/problematic-configs/class.config.php'],
+            'clone'        => [__DIR__ . '/TestAsset/problematic-configs/clone.config.php'],
+            'double-colon' => [__DIR__ . '/TestAsset/problematic-configs/double-colon.config.php'],
+            'eval'         => [__DIR__ . '/TestAsset/problematic-configs/eval.config.php'],
+            'exit'         => [__DIR__ . '/TestAsset/problematic-configs/exit.config.php'],
+            'extends'      => [__DIR__ . '/TestAsset/problematic-configs/extends.config.php'],
+            'interface'    => [__DIR__ . '/TestAsset/problematic-configs/interface.config.php'],
+            'new'          => [__DIR__ . '/TestAsset/problematic-configs/new.config.php'],
+            'trait'        => [__DIR__ . '/TestAsset/problematic-configs/trait.config.php'],
+        ];
+    }
+
+    /**
+     * @dataProvider problematicConfiguration
+     * @param string $configFile
+     */
+    public function testInstallerSkipsConfigFilesUsingClassConstantValues($configFile)
+    {
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent(file_get_contents($configFile));
+
+        $uninstaller = $this->createUninstaller();
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        $this->io
+            ->writeError(
+                Argument::containingString('Unable to check for asset configuration in')
+            )
+            ->shouldBeCalled();
+
+        $this->assertNull($uninstaller($this->event->reveal()));
+
+        foreach ($this->installedAssets as $asset) {
+            $path = vfsStream::url('project/', $asset);
+            $this->assertFileExists($path, sprintf('Expected file "%s"; file not found!', $path));
+        }
     }
 }

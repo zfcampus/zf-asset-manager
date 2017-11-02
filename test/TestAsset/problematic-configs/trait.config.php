@@ -1,0 +1,5 @@
+<?php // @codingStandardsIgnoreFile
+
+trait Failure
+{
+}

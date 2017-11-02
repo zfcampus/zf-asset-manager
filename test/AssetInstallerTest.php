@@ -16,6 +16,7 @@ use Composer\Package\PackageInterface;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 use PHPUnit_Framework_TestCase as TestCase;
+use Prophecy\Argument;
 use ZF\AssetManager\AssetInstaller;
 
 class AssetInstallerTest extends TestCase
@@ -66,9 +67,11 @@ class AssetInstallerTest extends TestCase
             ->will([$operation, 'reveal'])
             ->shouldBeCalled();
 
+        $this->io = $this->prophesize(IOInterface::class);
+
         return new AssetInstaller(
             $composer->reveal(),
-            $this->prophesize(IOInterface::class)->reveal()
+            $this->io->reveal()
         );
     }
 
@@ -199,5 +202,49 @@ class AssetInstallerTest extends TestCase
         $gitIgnoreContents = file_get_contents($gitIgnoreFile);
         $gitIgnoreContents = explode("\n", $gitIgnoreContents);
         $this->assertEquals(array_unique($gitIgnoreContents), $gitIgnoreContents);
+    }
+
+    public function problematicConfiguration()
+    {
+        return [
+            'class'        => [__DIR__ . '/TestAsset/problematic-configs/class.config.php'],
+            'clone'        => [__DIR__ . '/TestAsset/problematic-configs/clone.config.php'],
+            'double-colon' => [__DIR__ . '/TestAsset/problematic-configs/double-colon.config.php'],
+            'eval'         => [__DIR__ . '/TestAsset/problematic-configs/eval.config.php'],
+            'exit'         => [__DIR__ . '/TestAsset/problematic-configs/exit.config.php'],
+            'extends'      => [__DIR__ . '/TestAsset/problematic-configs/extends.config.php'],
+            'interface'    => [__DIR__ . '/TestAsset/problematic-configs/interface.config.php'],
+            'new'          => [__DIR__ . '/TestAsset/problematic-configs/new.config.php'],
+            'trait'        => [__DIR__ . '/TestAsset/problematic-configs/trait.config.php'],
+        ];
+    }
+
+    /**
+     * @dataProvider problematicConfiguration
+     * @param string $configFile
+     */
+    public function testInstallerSkipsConfigFilesUsingClassConstantValues($configFile)
+    {
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent(file_get_contents($configFile));
+
+        $installer = $this->createInstaller();
+        $installer->setProjectPath(vfsStream::url('project'));
+
+        $this->io
+            ->writeError(
+                Argument::containingString('Unable to check for asset configuration in')
+            )
+            ->shouldBeCalled();
+
+        $this->assertNull($installer($this->event->reveal()));
+
+        foreach ($this->expectedAssets as $asset) {
+            $path = vfsStream::url('project/public/' . $asset);
+            $this->assertFileNotExists($path, sprintf('File %s discovered, when it should not exist', $path));
+        }
     }
 }
