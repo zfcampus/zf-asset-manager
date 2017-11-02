@@ -3,5 +3,5 @@
 use RecursiveIteratorIterator;
 
 return [
-    'asset_manager' => RecursiveIteratorIterator::LEAVES_ONLY,
+    'unknown-key' => RecursiveIteratorIterator::LEAVES_ONLY,
 ];

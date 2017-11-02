@@ -73,6 +73,10 @@ class AssetInstaller
             return;
         }
 
+        if (! $this->configFileNeedsParsing($packageConfigPath)) {
+            return;
+        }
+
         if (! $this->isParseableContent($packageConfigPath)) {
             $this->io->writeError(sprintf(
                 'Unable to check for asset configuration in %s; '

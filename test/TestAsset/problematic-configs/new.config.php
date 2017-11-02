@@ -1,5 +1,5 @@
 <?php // @codingStandardsIgnoreFile
 
 return [
-    'some-key' => new \Some\Namespaced\Item(),
+    'asset_manager' => new \Some\Namespaced\Item(),
 ];

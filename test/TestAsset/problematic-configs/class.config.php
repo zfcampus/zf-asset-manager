@@ -2,4 +2,7 @@
 
 class Failure
 {
+    const CONFIG = [
+        'asset_manager' => 'foo',
+    ];
 }

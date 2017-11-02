@@ -327,7 +327,7 @@ class AssetUninstallerTest extends TestCase
      * @dataProvider problematicConfiguration
      * @param string $configFile
      */
-    public function testInstallerSkipsConfigFilesUsingClassConstantValues($configFile)
+    public function testUninstallerSkipsConfigFilesUsingProblematicConstructs($configFile)
     {
         vfsStream::newDirectory('public')->at($this->filesystem);
 
@@ -343,6 +343,71 @@ class AssetUninstallerTest extends TestCase
                 Argument::containingString('Unable to check for asset configuration in')
             )
             ->shouldBeCalled();
+
+        $this->assertNull($uninstaller($this->event->reveal()));
+
+        foreach ($this->installedAssets as $asset) {
+            $path = vfsStream::url('project/', $asset);
+            $this->assertFileExists($path, sprintf('Expected file "%s"; file not found!', $path));
+        }
+    }
+
+    public function configFilesWithoutAssetManagerConfiguration()
+    {
+        return [
+            'class'        => [__DIR__ . '/TestAsset/no-asset-manager-configs/class.config.php'],
+            'clone'        => [__DIR__ . '/TestAsset/no-asset-manager-configs/clone.config.php'],
+            'double-colon' => [__DIR__ . '/TestAsset/no-asset-manager-configs/double-colon.config.php'],
+            'eval'         => [__DIR__ . '/TestAsset/no-asset-manager-configs/eval.config.php'],
+            'exit'         => [__DIR__ . '/TestAsset/no-asset-manager-configs/exit.config.php'],
+            'extends'      => [__DIR__ . '/TestAsset/no-asset-manager-configs/extends.config.php'],
+            'interface'    => [__DIR__ . '/TestAsset/no-asset-manager-configs/interface.config.php'],
+            'new'          => [__DIR__ . '/TestAsset/no-asset-manager-configs/new.config.php'],
+            'trait'        => [__DIR__ . '/TestAsset/no-asset-manager-configs/trait.config.php'],
+        ];
+    }
+
+    /**
+     * @dataProvider configFilesWithoutAssetManagerConfiguration
+     * @param string $configFile
+     */
+    public function testUninstallerSkipsConfigFilesThatDoNotContainAssetManagerString($configFile)
+    {
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent(file_get_contents($configFile));
+
+        $uninstaller = $this->createUninstaller();
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        $this->io
+            ->writeError(Argument::any())
+            ->shouldNotBeCalled();
+
+        $this->assertNull($uninstaller($this->event->reveal()));
+
+        foreach ($this->installedAssets as $asset) {
+            $path = vfsStream::url('project/', $asset);
+            $this->assertFileExists($path, sprintf('Expected file "%s"; file not found!', $path));
+        }
+    }
+
+    public function testInstallerAllowsConfigurationContainingClassPseudoConstant()
+    {
+        vfsStream::newDirectory('public')->at($this->filesystem);
+
+        vfsStream::newFile('vendor/org/package/config/module.config.php')
+            ->at($this->filesystem)
+            ->setContent("<?php\nreturn [\n    'some-key' => AssetUninstaller::class,\n    'asset-manager' => []];");
+
+        $uninstaller = $this->createUninstaller();
+        $uninstaller->setProjectPath(vfsStream::url('project'));
+
+        $this->io
+            ->writeError(Argument::any())
+            ->shouldNotBeCalled();
 
         $this->assertNull($uninstaller($this->event->reveal()));
 

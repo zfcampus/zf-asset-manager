@@ -1,5 +1,5 @@
 <?php // @codingStandardsIgnoreFile
 
 return [
-    'some-key' => clone $this,
+    'asset_manager' => clone $this,
 ];

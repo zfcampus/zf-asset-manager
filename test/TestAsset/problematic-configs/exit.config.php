@@ -1,5 +1,5 @@
 <?php // @codingStandardsIgnoreFile
 
 return [
-    'some-key' => exit(),
+    'asset_manager' => exit(),
 ];

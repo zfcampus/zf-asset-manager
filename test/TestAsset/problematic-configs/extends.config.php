@@ -1,5 +1,5 @@
 <?php // @codingStandardsIgnoreFile
 
 return [
-    'some-key' => new class([]) extends \ArrayObject{},
+    'asset_manager' => new class([]) extends \ArrayObject{},
 ];

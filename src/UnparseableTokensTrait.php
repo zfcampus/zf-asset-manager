@@ -31,12 +31,32 @@ trait UnparseableTokensTrait
      * @var string $packageConfigPath
      * @return bool
      */
+    private function configFileNeedsParsing($packageConfigPath)
+    {
+        $contents = file_get_contents($packageConfigPath);
+        if (preg_match('/[\'"]asset_manager[\'"]\s*\=\>/s', $contents)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @var string $packageConfigPath
+     * @return bool
+     */
     private function isParseableContent($packageConfigPath)
     {
         $contents = file_get_contents($packageConfigPath);
         $tokens = token_get_all($contents);
-        foreach ($tokens as $token) {
+        foreach ($tokens as $index => $token) {
             if (! is_array($token)) {
+                continue;
+            }
+
+            // ::class notation is okay
+            if ($token[0] === T_DOUBLE_COLON
+                && $this->isClassPseudoConstant($tokens[$index + 1])
+            ) {
                 continue;
             }
 
@@ -45,5 +65,18 @@ trait UnparseableTokensTrait
             }
         }
         return true;
+    }
+
+    /**
+     * @param string|array Token to test as a class pseudoconstant
+     * @return bool
+     */
+    private function isClassPseudoConstant($token)
+    {
+        if (! is_array($token)) {
+            return false;
+        }
+
+        return $token[0] === T_CLASS;
     }
 }
