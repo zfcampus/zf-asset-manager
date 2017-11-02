@@ -29,7 +29,6 @@ matrix:
     - php: 7
       env:
         - DEPS=locked
-        - CHECK_CS=true
         - LEGACY_DEPS="phpunit/phpunit"
     - php: 7
       env:
@@ -40,6 +39,7 @@ matrix:
     - php: 7.1
       env:
         - DEPS=locked
+        - CHECK_CS=true
         - TEST_COVERAGE=true
     - php: 7.1
       env:
