@@ -46,30 +46,10 @@ trait UnparseableTokensTrait
                 continue;
             }
 
-            // ::class notation is okay
-            if ($token[0] === T_DOUBLE_COLON
-                && $this->isClassPseudoConstant($tokens[$index + 1])
-            ) {
-                continue;
-            }
-
             if (in_array($token[0], $this->unparseableTokens, true)) {
                 return false;
             }
         }
         return true;
-    }
-
-    /**
-     * @param string|array Token to test as a class pseudoconstant
-     * @return bool
-     */
-    private function isClassPseudoConstant($token)
-    {
-        if (! is_array($token)) {
-            return false;
-        }
-
-        return $token[0] === T_CLASS;
     }
 }
