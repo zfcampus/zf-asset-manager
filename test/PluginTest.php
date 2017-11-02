@@ -7,7 +7,7 @@
 
 namespace ZFTest\AssetManager;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 use ZF\AssetManager\Plugin;
 
 class PluginTest extends TestCase
