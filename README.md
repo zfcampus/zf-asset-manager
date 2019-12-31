@@ -1,5 +1,9 @@
 # zf-asset-manager
 
+> ## Repository abandoned 2019-12-31
+>
+> This repository has moved to laminas-api-tools/api-tools-asset-manager.
+
 [![Build Status](https://travis-ci.org/zfcampus/zf-asset-manager.png)](https://travis-ci.org/zfcampus/zf-asset-manager)
 
 zf-asset-manager is a composer plugin that will copy configured web-accessible
