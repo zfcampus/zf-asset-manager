@@ -2,7 +2,7 @@
 
 > ## Repository abandoned 2019-12-31
 >
-> This repository has moved to laminas-api-tools/api-tools-asset-manager.
+> This repository has moved to [laminas-api-tools/api-tools-asset-manager](https://github.com/laminas-api-tools/api-tools-asset-manager).
 
 [![Build Status](https://travis-ci.org/zfcampus/zf-asset-manager.png)](https://travis-ci.org/zfcampus/zf-asset-manager)
 
